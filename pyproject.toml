@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "trezorpass"
+version = "0.1.0"
+description = ""
+authors = []
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+PySide6 = "^6.7.3"
+trezor = "^0.13.9"
+pycryptodome = "^3.20.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
