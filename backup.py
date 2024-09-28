@@ -1,4 +1,4 @@
-import cPickle
+import pickle
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
@@ -7,7 +7,7 @@ from Crypto import Random
 
 from encoding import Magic, Padding
 
-class Backup(object):
+class Backup:
 	"""
 	Performs backup and restore for password storage
 	"""
@@ -84,13 +84,13 @@ class Backup(object):
 		publicDer = self.publicKey.exportKey(format="DER")
 		picklable = (self.ephemeralIv, self.encryptedEphemeral,
 		     self.encryptedPrivate, publicDer)
-		return cPickle.dumps(picklable, cPickle.HIGHEST_PROTOCOL)
+		return pickle.dumps(picklable, pickle.HIGHEST_PROTOCOL)
 
 	def deserialize(self, serialized):
 		"""
 		Set object data from serialized string
 		"""
-		unpickled = cPickle.loads(serialized)
+		unpickled = pickle.loads(serialized)
 		(self.ephemeralIv, self.encryptedEphemeral,
 		     self.encryptedPrivate, publicDer) = unpickled
 		self.publicKey = RSA.importKey(publicDer)

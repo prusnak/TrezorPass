@@ -1,5 +1,5 @@
 import struct
-import cPickle
+import pickle
 import hmac
 import hashlib
 
@@ -25,7 +25,7 @@ BLOCKSIZE = 16
 MACSIZE = 32
 KEYSIZE = 32
 
-class PasswordGroup(object):
+class PasswordGroup:
 	"""
 	Holds data for one password group.
 	
@@ -57,7 +57,7 @@ class PasswordGroup(object):
 		"""Return entry with given index"""
 		return self.entries[idx]
 
-class PasswordMap(object):
+class PasswordMap:
 	"""Storage of groups of passwords in memory"""
 	
 	def __init__(self, trezor):
@@ -88,43 +88,43 @@ class PasswordMap(object):
 		with file(fname) as f:
 			header = f.read(len(Magic.headerStr))
 			if header != Magic.headerStr:
-				raise IOError("Bad header in storage file")
+				raise OSError("Bad header in storage file")
 			version = f.read(4)
 			if len(version) != 4 or struct.unpack("!I", version)[0] != 1:
-				raise IOError("Unknown version of storage file")
+				raise OSError("Unknown version of storage file")
 			wrappedKey = f.read(KEYSIZE)
 			if len(wrappedKey) != KEYSIZE:
-				raise IOError("Corrupted disk format - bad wrapped key length")
+				raise OSError("Corrupted disk format - bad wrapped key length")
 			
 			self.outerKey = self.unwrapKey(wrappedKey)
 			
 			self.outerIv = f.read(BLOCKSIZE)
 			if len(self.outerIv) != BLOCKSIZE:
-				raise IOError("Corrupted disk format - bad IV length")
+				raise OSError("Corrupted disk format - bad IV length")
 			
 			lb = f.read(2)
 			if len(lb) != 2:
-				raise IOError("Corrupted disk format - bad backup key length")
+				raise OSError("Corrupted disk format - bad backup key length")
 			lb = struct.unpack("!H", lb)[0]
 			
 			self.backupKey = Backup(self.trezor)
 			serializedBackup = f.read(lb)
 			if len(serializedBackup) != lb:
-				raise IOError("Corrupted disk format - not enough encrypted backup key bytes")
+				raise OSError("Corrupted disk format - not enough encrypted backup key bytes")
 			self.backupKey.deserialize(serializedBackup)
 			
 			ls = f.read(4)
 			if len(ls) != 4:
-				raise IOError("Corrupted disk format - bad data length")
+				raise OSError("Corrupted disk format - bad data length")
 			l = struct.unpack("!I", ls)[0]
 			
 			encrypted = f.read(l)
 			if len(encrypted) != l:
-				raise IOError("Corrupted disk format - not enough data bytes")
+				raise OSError("Corrupted disk format - not enough data bytes")
 			
 			hmacDigest = f.read(MACSIZE)
 			if len(hmacDigest) != MACSIZE:
-				raise IOError("Corrupted disk format - HMAC not complete")
+				raise OSError("Corrupted disk format - HMAC not complete")
 			
 			#time-invariant HMAC comparison that also works with python 2.6
 			newHmacDigest = hmac.new(self.outerKey, encrypted, hashlib.sha256).digest()
@@ -132,10 +132,10 @@ class PasswordMap(object):
 			for (ch1, ch2) in zip(hmacDigest, newHmacDigest):
 				hmacCompare |= int(ch1 != ch2)
 			if hmacCompare != 0:
-				raise IOError("Corrupted disk format - HMAC does not match or bad passphrase")
+				raise OSError("Corrupted disk format - HMAC does not match or bad passphrase")
 				
 			serialized = self.decryptOuter(encrypted, self.outerIv)
-			self.groups = cPickle.loads(serialized)
+			self.groups = pickle.loads(serialized)
 	
 	def save(self, fname):
 		"""
@@ -155,7 +155,7 @@ class PasswordMap(object):
 			f.write(struct.pack("!I", version))
 			f.write(wrappedKey)
 			f.write(self.outerIv)
-			serialized = cPickle.dumps(self.groups, cPickle.HIGHEST_PROTOCOL)
+			serialized = pickle.dumps(self.groups, pickle.HIGHEST_PROTOCOL)
 			encrypted = self.encryptOuter(serialized, self.outerIv)
 			
 			hmacDigest = hmac.new(self.outerKey, encrypted, hashlib.sha256).digest()

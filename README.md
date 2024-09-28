@@ -27,8 +27,8 @@ Trezor must be already set up to use passphrase.
 
 # Runtime requirements
 
-  * PyCrypto
-  * PyQt4
+  * pycryptodome
+  * PySide6
   * [trezorlib from python-trezor](https://github.com/trezor/python-trezor)
 
 # Building
@@ -40,8 +40,8 @@ need to be transformed into Python files. There's Makefile, you just need to run
 
 ## Build requirements
 
-PyQt4 development tools are necessary, namely `pyuic4` (look for packages named
-like `pyqt4-dev-tools` or `PyQt4-devel`).
+PySide6 development tools are necessary, namely `pyside6-uic`
+(look for packages named like `pyside6-tools`).
 
 # Running
 

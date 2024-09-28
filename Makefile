@@ -11,8 +11,7 @@ UI_GENERATED := \
 all: $(UI_GENERATED)
 
 ui_%.py: %.ui
-	pyuic4 -o $@ $<
-
+	pyside6-uic -o $@ $<
 
 clean:
 	rm -rf $(UI_GENERATED)

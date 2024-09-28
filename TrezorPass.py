@@ -3,13 +3,13 @@ import sys
 import os.path
 import csv
 
-from PyQt4 import QtGui, QtCore
+from PySide6 import QtGui, QtCore, QtWidgets
 from Crypto import Random
 
-from trezorlib.client import BaseClient, ProtocolMixin, CallException, PinException
-from trezorlib.transport import ConnectionError
-from trezorlib.transport_hid import HidTransport
-from trezorlib import messages_pb2 as proto
+from trezorlib.client import TrezorClient
+from trezorlib.exceptions import PinException, TrezorFailure
+from trezorlib.transport.webusb import WebUsbTransport
+from trezorlib import messages as proto
 
 from ui_mainwindow import Ui_MainWindow
 
@@ -20,7 +20,7 @@ from backup import Backup
 from dialogs import AddGroupDialog, TrezorPassphraseDialog, AddPasswordDialog, \
 	InitializeDialog, EnterPinDialog, TrezorChooserDialog
 
-class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
+class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 	"""Main window for the application with groups and password lists"""
 
 	KEY_IDX = 0 #column where key is shown in password table
@@ -32,7 +32,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		@param pwMap: a PasswordMap instance with encrypted passwords
 		@param dbFilename: file name for saving pwMap
 		"""
-		QtGui.QMainWindow.__init__(self)
+		QtWidgets.QMainWindow.__init__(self)
 		self.setupUi(self)
 		
 		self.pwMap = pwMap
@@ -40,9 +40,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.modified = False #modified flag "Save?" question on exit
 		self.dbFilename = dbFilename
 		
-		self.groupsModel = QtGui.QStandardItemModel()
+		self.groupsModel = QtWidgets.QStandardItemModel()
 		self.groupsModel.setHorizontalHeaderLabels(["Password group"])
-		self.groupsFilter = QtGui.QSortFilterProxyModel()
+		self.groupsFilter = QtWidgets.QSortFilterProxyModel()
 		self.groupsFilter.setSourceModel(self.groupsModel)
 		
 		self.groupsTree.setModel(self.groupsFilter)
@@ -54,19 +54,19 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		self.passwordTable.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		self.passwordTable.customContextMenuRequested.connect(self.showPasswdContextMenu)
-		self.passwordTable.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-		self.passwordTable.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+		self.passwordTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		self.passwordTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 		
-		shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+C"), self.passwordTable, self.copyPasswordFromSelection)
+		shortcut = QtWidgets.QShortcut(QtWidgets.QKeySequence("Ctrl+C"), self.passwordTable, self.copyPasswordFromSelection)
 		shortcut.setContext(QtCore.Qt.WidgetShortcut)
 		
 		self.actionQuit.triggered.connect(self.close)
 		self.actionBackup.triggered.connect(self.saveBackup)
 		self.actionSave.triggered.connect(self.saveDatabase)
-		self.actionSave.setShortcut(QtGui.QKeySequence("Ctrl+S"))
+		self.actionSave.setShortcut(QtWidgets.QKeySequence("Ctrl+S"))
 		
-		headerKey = QtGui.QTableWidgetItem("Key");
-		headerValue = QtGui.QTableWidgetItem("Value");
+		headerKey = QtWidgets.QTableWidgetItem("Key");
+		headerValue = QtWidgets.QTableWidgetItem("Value");
 		self.passwordTable.setColumnCount(2)
 		self.passwordTable.setHorizontalHeaderItem(self.KEY_IDX, headerKey)
 		self.passwordTable.setHorizontalHeaderItem(self.PASSWORD_IDX, headerValue)
@@ -75,7 +75,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		groupNames = self.pwMap.groups.keys()
 		for groupName in groupNames:
-			item = QtGui.QStandardItem(s2q(groupName))
+			item = QtWidgets.QStandardItem(s2q(groupName))
 			self.groupsModel.appendRow(item)
 		self.groupsTree.sortByColumn(0, QtCore.Qt.AscendingOrder)
 	
@@ -93,7 +93,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		@param point: point in self.groupsTree where click occured
 		"""
-		self.addGroupMenu = QtGui.QMenu(self)
+		self.addGroupMenu = QtWidgets.QMenu(self)
 		newGroupAction = QtGui.QAction('Add group', self)
 		deleteGroupAction = QtGui.QAction('Delete group', self)
 		self.addGroupMenu.addAction(newGroupAction)
@@ -120,10 +120,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		@param point: point in self.passwordTable where click occured
 		"""
-		self.passwdMenu = QtGui.QMenu(self)
+		self.passwdMenu = QtWidgets.QMenu(self)
 		showPasswordAction = QtGui.QAction('Show password', self)
 		copyPasswordAction = QtGui.QAction('Copy password', self)
-		copyPasswordAction.setShortcut(QtGui.QKeySequence( "Ctrl+C"))
+		copyPasswordAction.setShortcut(QtWidgets.QKeySequence( "Ctrl+C"))
 		newItemAction = QtGui.QAction('New item', self)
 		deleteItemAction = QtGui.QAction('Delete item', self)
 		editItemAction = QtGui.QAction('Edit item', self)
@@ -168,7 +168,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		groupName = dialog.newGroupName()
 		
-		newItem = QtGui.QStandardItem(groupName)
+		newItem = QtWidgets.QStandardItem(groupName)
 		self.groupsModel.appendRow(newItem)
 		self.pwMap.addGroup(q2s(groupName))
 		
@@ -176,7 +176,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		itemIdx = self.groupsModel.indexFromItem(newItem)
 		proxyIdx = self.groupsFilter.mapFromSource(itemIdx)
 		self.groupsTree.selectionModel().select(proxyIdx,
-			QtGui.QItemSelectionModel.ClearAndSelect | QtGui.QItemSelectionModel.Rows)
+			QtWidgets.QItemSelectionModel.ClearAndSelect | QtWidgets.QItemSelectionModel.Rows)
 		self.groupsTree.sortByColumn(0, QtCore.Qt.AscendingOrder)
 		
 		#Make item's passwords loaded so new key-value entries can be created
@@ -186,11 +186,11 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.setModified(True)
 
 	def deleteGroup(self, item):
-		msgBox = QtGui.QMessageBox(text="Are you sure about delete?")
-		msgBox.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+		msgBox = QtWidgets.QMessageBox(text="Are you sure about delete?")
+		msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 		res = msgBox.exec_()
 		
-		if res != QtGui.QMessageBox.Yes:
+		if res != QtWidgets.QMessageBox.Yes:
 			return
 		
 		name = q2s(item.text())
@@ -205,11 +205,11 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.setModified(True)
 	
 	def deletePassword(self, item):
-		msgBox = QtGui.QMessageBox(text="Are you sure about delete?")
-		msgBox.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+		msgBox = QtWidgets.QMessageBox(text="Are you sure about delete?")
+		msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 		res = msgBox.exec_()
 		
-		if res != QtGui.QMessageBox.Yes:
+		if res != QtWidgets.QMessageBox.Yes:
 			return
 		
 		row = self.passwordTable.row(item)
@@ -270,9 +270,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		row = self.passwordTable.row(item)
 		try:
 			decrypted = self.cachedOrDecrypt(row)
-		except CallException:
+		except TrezorFailure:
 			return
-		item = QtGui.QTableWidgetItem(s2q(decrypted))
+		item = QtWidgets.QTableWidgetItem(s2q(decrypted))
 		
 		self.cachePassword(row, decrypted)
 		self.passwordTable.setItem(row, self.PASSWORD_IDX, item)
@@ -289,8 +289,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		rowCount = self.passwordTable.rowCount()
 		self.passwordTable.setRowCount(rowCount+1)
-		item = QtGui.QTableWidgetItem(dialog.key())
-		pwItem = QtGui.QTableWidgetItem("*****")
+		item = QtWidgets.QTableWidgetItem(dialog.key())
+		pwItem = QtWidgets.QTableWidgetItem("*****")
 		self.passwordTable.setItem(rowCount, self.KEY_IDX, item)
 		self.passwordTable.setItem(rowCount, self.PASSWORD_IDX, pwItem)
 		
@@ -309,7 +309,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		group = self.pwMap.groups[self.selectedGroup]
 		try:
 			decrypted = self.cachedOrDecrypt(row)
-		except CallException:
+		except TrezorFailure:
 			return
 		
 		dialog = AddPasswordDialog()
@@ -321,8 +321,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		if not dialog.exec_():
 			return
 		
-		item = QtGui.QTableWidgetItem(dialog.key())
-		pwItem = QtGui.QTableWidgetItem("*****")
+		item = QtWidgets.QTableWidgetItem(dialog.key())
+		pwItem = QtWidgets.QTableWidgetItem("*****")
 		self.passwordTable.setItem(row, self.KEY_IDX, item)
 		self.passwordTable.setItem(row, self.PASSWORD_IDX, pwItem)
 		
@@ -352,10 +352,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		row = self.passwordTable.row(item)
 		try:
 			decrypted = self.cachedOrDecrypt(row)
-		except CallException:
+		except TrezorFailure:
 			return
 		
-		clipboard = QtGui.QApplication.clipboard()
+		clipboard = QtWidgets.QApplication.clipboard()
 		clipboard.setText(s2q(decrypted))
 		
 		self.cachePassword(row, decrypted)
@@ -372,8 +372,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		i = 0
 		for key, encValue, bkupValue in group.entries:
-			item = QtGui.QTableWidgetItem(s2q(key))
-			pwItem = QtGui.QTableWidgetItem("*****")
+			item = QtWidgets.QTableWidgetItem(s2q(key))
+			pwItem = QtWidgets.QTableWidgetItem("*****")
 			self.passwordTable.setItem(i, self.KEY_IDX, item)
 			self.passwordTable.setItem(i, self.PASSWORD_IDX, pwItem)
 			i = i+1
@@ -404,9 +404,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		
 		Export format is CSV: group, key, password
 		"""
-		dialog = QtGui.QFileDialog(self, "Select backup export file",
+		dialog = QtWidgets.QFileDialog(self, "Select backup export file",
 			"", "CVS files (*.csv)")
-		dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+		dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
 		
 		res = dialog.exec_()
 		if not res:
@@ -416,7 +416,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		backupKey = self.pwMap.backupKey
 		try:
 			privateKey = backupKey.unwrapPrivateKey()
-		except CallException:
+		except TrezorFailure:
 			return
 		
 		with file(fname, "w") as f:
@@ -440,26 +440,26 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 	
 	def closeEvent(self, event):
 		if self.modified:
-			msgBox = QtGui.QMessageBox(text="Password database is modified. Save on exit?")
-			msgBox.setStandardButtons(QtGui.QMessageBox.Yes |
-				QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel )
+			msgBox = QtWidgets.QMessageBox(text="Password database is modified. Save on exit?")
+			msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes |
+				QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel )
 			reply = msgBox.exec_()
 			
-			if not reply or reply == QtGui.QMessageBox.Cancel:
+			if not reply or reply == QtWidgets.QMessageBox.Cancel:
 				event.ignore()
 				return
-			elif reply == QtGui.QMessageBox.Yes:
+			elif reply == QtWidgets.QMessageBox.Yes:
 				self.saveDatabase()
 			
 		event.accept()
 	
-class QtTrezorMixin(object):
+class QtTrezorMixin:
 	"""
 	Mixin for input of passhprases.
 	"""
 	
 	def __init__(self, *args, **kwargs):
-		super(QtTrezorMixin, self).__init__(*args, **kwargs)
+		super().__init__(*args, **kwargs)
 		self.passphrase = None
 	
 	def callback_ButtonRequest(self, msg):
@@ -492,13 +492,13 @@ class QtTrezorMixin(object):
 		"""
 		self.passphrase = passphrase.decode("utf-8")
 
-class QtTrezorClient(ProtocolMixin, QtTrezorMixin, BaseClient):
+class QtTrezorClient(TrezorClient):
 	"""
 	Trezor client with Qt input methods
 	"""
 	pass
 
-class TrezorChooser(object):
+class TrezorChooser:
 	"""Class for working with Trezor device via HID"""
 	
 	def __init__(self):
@@ -521,7 +521,7 @@ class TrezorChooser(object):
 
 	def enumerateHIDDevices(self):
 		"""Returns Trezor HID devices"""
-		devices = HidTransport.enumerate()
+		devices = WebUsbTransport.enumerate()
 
 		return devices
 
@@ -533,15 +533,15 @@ class TrezorChooser(object):
 		If there are multiple Trezors, diplays a widget with list
 		of Trezor devices to choose from.
 		
-		@returns HidTransport object of selected device
+		@returns WebUsbTransport object of selected device
 		"""
 		if not len(devices):
 			raise RuntimeError("No Trezor connected!")
 
 		if len(devices) == 1:
 			try:
-				return HidTransport(devices[0])
-			except IOError:
+				return WebUsbTransport(devices[0])
+			except OSError:
 				raise RuntimeError("Trezor is currently in use")
 		
 		
@@ -549,13 +549,13 @@ class TrezorChooser(object):
 		deviceMap = {}
 		for device in devices:
 			try:
-				transport = HidTransport(device)
+				transport = WebUsbTransport(device)
 				client = QtTrezorClient(transport)
 				label = client.features.label and client.features.label or "<no label>"
 				client.close()
 				
 				deviceMap[device[0]] = label
-			except IOError:
+			except OSError:
 				#device in use, do not offer as choice
 				continue
 				
@@ -567,10 +567,10 @@ class TrezorChooser(object):
 			sys.exit(9)
 		
 		deviceStr = dialog.chosenDeviceStr()
-		return HidTransport([deviceStr, None])
+		return WebUsbTransport([deviceStr, None])
 		
 
-class Settings(object):
+class Settings:
 	"""
 	Settings for password database location
 	"""
@@ -613,19 +613,19 @@ def initializeStorage(trezor, pwMap, settings):
 	settings.store()
 	
 
-app = QtGui.QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 
 try:
 	trezorChooser = TrezorChooser()
 	trezor = trezorChooser.getDevice()
-except (ConnectionError, RuntimeError), e:
-	msgBox = QtGui.QMessageBox(text="Connection to Trezor failed: " + e.message)
+except Exception as e:
+	msgBox = QtWidgets.QMessageBox(text=f"Connection to Trezor failed: {e}")
 	msgBox.exec_()
 	sys.exit(1)
 	
 
 if trezor is None:
-	msgBox = QtGui.QMessageBox(text="No available Trezor found, quitting.")
+	msgBox = QtWidgets.QMessageBox(text="No available Trezor found, quitting.")
 	msgBox.exec_()
 	sys.exit(1)
 	
@@ -639,17 +639,17 @@ if settings.dbFilename and os.path.isfile(settings.dbFilename):
 	try:
 		pwMap.load(settings.dbFilename)
 	except PinException:
-		msgBox = QtGui.QMessageBox(text="Invalid PIN")
+		msgBox = QtWidgets.QMessageBox(text="Invalid PIN")
 		msgBox.exec_()
 		sys.exit(8)
-	except CallException:
+	except TrezorFailure:
 		#button cancel on Trezor, so exit
 		sys.exit(6)
-	except Exception, e:
-		msgBox = QtGui.QMessageBox(text="Could not decrypt passwords: " + e.message)
+	except Exception as e:
+		msgBox = QtWidgets.QMessageBox(text=f"Could not decrypt passwords: {e}")
 		msgBox.exec_()
 		sys.exit(5)
-		
+
 else:
 	initializeStorage(trezor, pwMap, settings)
 	

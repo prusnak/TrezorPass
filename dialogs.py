@@ -1,4 +1,4 @@
-from PyQt4 import QtGui, QtCore
+from PySide6 import QtWidgets, QtCore, QtWidgets
 
 from ui_addgroup_dialog import Ui_AddGroupDialog
 from ui_trezor_passphrase_dialog import Ui_TrezorPassphraseDialog
@@ -7,16 +7,16 @@ from ui_initialize_dialog import Ui_InitializeDialog
 from ui_enter_pin_dialog import Ui_EnterPinDialog
 from ui_trezor_chooser_dialog import Ui_TrezorChooserDialog
 
-class AddGroupDialog(QtGui.QDialog, Ui_AddGroupDialog):
+class AddGroupDialog(QtWidgets.QDialog, Ui_AddGroupDialog):
 	
 	def __init__(self, groups):
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 		self.newGroupEdit.textChanged.connect(self.validate)
 		self.groups = groups
 		
 		#disabled for empty string
-		button = self.buttonBox.button(QtGui.QDialogButtonBox.Ok)
+		button = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
 		button.setEnabled(False)
 	
 	def newGroupName(self):
@@ -36,13 +36,13 @@ class AddGroupDialog(QtGui.QDialog, Ui_AddGroupDialog):
 		if unicode(text).encode("utf-8") in self.groups:
 			valid = False
 		
-		button = self.buttonBox.button(QtGui.QDialogButtonBox.Ok)
+		button = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
 		button.setEnabled(valid)
 	
-class TrezorPassphraseDialog(QtGui.QDialog, Ui_TrezorPassphraseDialog):
+class TrezorPassphraseDialog(QtWidgets.QDialog, Ui_TrezorPassphraseDialog):
 	
 	def __init__(self):
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 	
 	def passphrase(self):
@@ -50,10 +50,10 @@ class TrezorPassphraseDialog(QtGui.QDialog, Ui_TrezorPassphraseDialog):
 		
 	
 
-class AddPasswordDialog(QtGui.QDialog, Ui_AddPasswordDialog):
+class AddPasswordDialog(QtWidgets.QDialog, Ui_AddPasswordDialog):
 	
 	def __init__(self):
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 		self.pwEdit1.textChanged.connect(self.validatePw)
 		self.pwEdit2.textChanged.connect(self.validatePw)
@@ -70,23 +70,23 @@ class AddPasswordDialog(QtGui.QDialog, Ui_AddPasswordDialog):
 	
 	def validatePw(self):
 		same = self.pw1() == self.pw2()
-		button = self.buttonBox.button(QtGui.QDialogButtonBox.Ok)
+		button = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
 		button.setEnabled(same)
 	
 	def switchPwVisible(self):
 		pwMode = self.pwEdit1.echoMode()
-		if pwMode == QtGui.QLineEdit.Password:
-			newMode = QtGui.QLineEdit.Normal
+		if pwMode == QtWidgets.QLineEdit.Password:
+			newMode = QtWidgets.QLineEdit.Normal
 		else:
-			newMode = QtGui.QLineEdit.Password
+			newMode = QtWidgets.QLineEdit.Password
 			
 		self.pwEdit1.setEchoMode(newMode)
 		self.pwEdit2.setEchoMode(newMode)
 		
-class InitializeDialog(QtGui.QDialog, Ui_InitializeDialog):
+class InitializeDialog(QtWidgets.QDialog, Ui_InitializeDialog):
 	
 	def __init__(self):
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 		self.masterEdit1.textChanged.connect(self.validate)
 		self.masterEdit2.textChanged.connect(self.validate)
@@ -110,7 +110,7 @@ class InitializeDialog(QtGui.QDialog, Ui_InitializeDialog):
 		"""
 		same = self.pw1() == self.pw2()
 		fileSelected = not self.pwFileEdit.text().isEmpty()
-		button = self.buttonBox.button(QtGui.QDialogButtonBox.Ok)
+		button = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
 		button.setEnabled(same and fileSelected)
 	
 	def selectPwFile(self):
@@ -119,9 +119,9 @@ class InitializeDialog(QtGui.QDialog, Ui_InitializeDialog):
 		encrypted password database.
 		"""
 		path = QtCore.QDir.currentPath()
-		dialog = QtGui.QFileDialog(self, "Select password database file",
+		dialog = QtWidgets.QFileDialog(self, "Select password database file",
 			path, "(*.pwdb)")
-		dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+		dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
 		
 		res = dialog.exec_()
 		if not res:
@@ -130,10 +130,10 @@ class InitializeDialog(QtGui.QDialog, Ui_InitializeDialog):
 		fname = dialog.selectedFiles()[0]
 		self.pwFileEdit.setText(fname)
 
-class EnterPinDialog(QtGui.QDialog, Ui_EnterPinDialog):
+class EnterPinDialog(QtWidgets.QDialog, Ui_EnterPinDialog):
 	
 	def __init__(self):
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 		
 		self.pb1.clicked.connect(self.pinpadPressed)
@@ -155,7 +155,7 @@ class EnterPinDialog(QtGui.QDialog, Ui_EnterPinDialog):
 		digit = objName[-1]
 		self.pinEdit.setText(self.pinEdit.text() + digit)
 	
-class TrezorChooserDialog(QtGui.QDialog, Ui_TrezorChooserDialog):
+class TrezorChooserDialog(QtWidgets.QDialog, Ui_TrezorChooserDialog):
 	
 	def __init__(self, deviceMap):
 		"""
@@ -163,11 +163,11 @@ class TrezorChooserDialog(QtGui.QDialog, Ui_TrezorChooserDialog):
 		
 		@param deviceMap: dict device string -> device label
 		"""
-		QtGui.QDialog.__init__(self)
+		QtWidgets.QDialog.__init__(self)
 		self.setupUi(self)
 		
 		for deviceStr, label in deviceMap.items():
-			item = QtGui.QListWidgetItem(label)
+			item = QtWidgets.QListWidgetItem(label)
 			item.setData(QtCore.Qt.UserRole, QtCore.QVariant(deviceStr))
 			self.trezorList.addItem(item)
 		self.trezorList.setCurrentRow(0)
